@@ -65,7 +65,7 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     _initializePolygonEditor(
       polygonToEdit: newPolygon,
       currentAreas: currentAreas,
-      mainUud: nestedUuid,
+      mainUuid: nestedUuid,
     );
   }
 
@@ -90,7 +90,7 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     _initializePolygonEditor(
       polygonToEdit: polygonToEdit,
       currentAreas: currentAreas,
-      mainUud: mainUuid,
+      mainUuid: mainUuid,
     );
   }
 
@@ -117,13 +117,13 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   void _initializePolygonEditor({
     required PolygonExt polygonToEdit,
     required List<PolygonExt> currentAreas,
-    String? mainUud,
+    String? mainUuid,
   }) {
     List<LatLng>? mainAreaPoint;
 
     try {
       mainAreaPoint =
-          currentAreas.firstWhere((element) => element.uuid == mainUud).points;
+          currentAreas.firstWhere((element) => element.uuid == mainUuid).points;
     } catch (e) {
       mainAreaPoint = null; // Zwrócenie null, gdy nie ma dopasowania
     }
@@ -214,9 +214,7 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     }
     final tapedUuid = hitResult.hitValues.firstOrNull as String?;
     if (tapedUuid != null) {
-      editExistingPolygon(
-        tapedUuid,
-      );
+      editExistingPolygon(tapedUuid);
     }
     return false;
   }
@@ -260,10 +258,20 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     List<PolygonExt> currentAreas,
     PolygonExt newPolygon,
   ) {
-    return [
+    final updatedAreas = [
       ...currentAreas,
       newPolygon,
-    ];
+    ]..sort(
+        (a, b) {
+          final typeComparison = a.type.index.compareTo(b.type.index);
+          if (typeComparison != 0) {
+            return typeComparison;
+          }
+          return a.name.compareTo(b.name);
+        },
+      );
+
+    return updatedAreas; // Zwracanie posortowanej listy
   }
 
   /// Pobiera edytowany wielokąt z aktualnego stanu.

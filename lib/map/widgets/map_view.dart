@@ -45,6 +45,7 @@ class _MapViewState extends State<MapView> {
                   ),
 
                   /// if edit mode is off and there are areas to display
+                  ///
                   LoadedPolygon(
                     hitNotifier: hitNotifier,
                     areas: state.areas,
@@ -52,6 +53,7 @@ class _MapViewState extends State<MapView> {
                   ),
                   if (state.onEdit && state.polygonToEdit != null)
                     EditedPolygon(polygonToEdit: state.polygonToEdit!),
+
                   DragMarkers(
                     markers: state.markers,
                   ),
