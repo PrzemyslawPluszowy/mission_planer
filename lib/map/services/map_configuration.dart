@@ -12,7 +12,9 @@ class MapConfiguration {
 
   static const String defaultPolygonName = 'Nowe pole';
   static const String defaultPolygonDescription = 'Opis pola';
-  static const Color defaultPolygonColor = Color.fromARGB(61, 0, 0, 255);
+  static const Color defaultMainAreaColor = Color.fromARGB(61, 0, 0, 255);
+  static const Color defaultSubAreaColor = Color.fromARGB(80, 0, 255, 0);
+  static const Color defaultNoFlyZoneColor = Color.fromARGB(115, 255, 0, 0);
   static const Color defaultPolygonEdited = Color.fromARGB(117, 238, 244, 54);
   static const Color defaultPolygonColorRestictedArea =
       Color.fromARGB(61, 255, 0, 0);

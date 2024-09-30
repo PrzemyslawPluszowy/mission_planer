@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_dragmarker/flutter_map_dragmarker.dart';
 import 'package:mission_planer/map/cubit/map_view_controller_cubit.dart';
-import 'package:mission_planer/map/entities/area.dart';
 import 'package:mission_planer/map/entities/polygon_ext.dart';
 import 'package:mission_planer/map/services/map_configuration.dart';
 import 'package:mission_planer/map/widgets/edit_bar.dart';
@@ -45,7 +45,11 @@ class _MapViewState extends State<MapView> {
                   ),
 
                   /// if edit mode is off and there are areas to display
-                  LoadedPolygon(hitNotifier: hitNotifier, areas: state.areas),
+                  LoadedPolygon(
+                    hitNotifier: hitNotifier,
+                    areas: state.areas,
+                    useOnEditingMode: state.onEdit,
+                  ),
                   if (state.onEdit && state.polygonToEdit != null)
                     EditedPolygon(polygonToEdit: state.polygonToEdit!),
                   DragMarkers(
@@ -54,12 +58,48 @@ class _MapViewState extends State<MapView> {
                 ],
               ),
               if (state.onEdit) const EditBar(),
+              if (state.errorOnEdit != null) _errorEditingArea(state),
             ],
           );
         } else {
           return const CircularProgressIndicator();
         }
       },
+    );
+  }
+
+  Positioned _errorEditingArea(MapViewControllerRefreshMap state) {
+    return Positioned(
+      top: 100,
+      left: 0,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        constraints: const BoxConstraints(
+          minWidth: 300,
+        ),
+        height: MapConfiguration.editBarHeight,
+        decoration: const BoxDecoration(
+          borderRadius: BorderRadius.only(
+            bottomRight: Radius.circular(10),
+            topRight: Radius.circular(10),
+          ),
+          color: Color.fromARGB(255, 255, 17, 0),
+        ),
+        child: Center(
+          child: Text(
+            state.errorOnEdit!,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      )
+          .animate()
+          .moveX(
+            begin: -1000,
+            end: 0,
+          )
+          .fade(
+            duration: const Duration(milliseconds: 1000),
+          ),
     );
   }
 }
@@ -76,10 +116,7 @@ class EditedPolygon extends StatelessWidget {
   Widget build(BuildContext context) {
     return PolygonLayer(
       polygons: [
-        Polygon(
-          points: polygonToEdit.points,
-          color: MapConfiguration.defaultPolygonEdited,
-        ),
+        polygonToEdit,
       ],
     );
   }
@@ -89,11 +126,13 @@ class LoadedPolygon extends StatelessWidget {
   const LoadedPolygon({
     required this.hitNotifier,
     required this.areas,
+    required this.useOnEditingMode,
     super.key,
   });
 
   final LayerHitNotifier<Object> hitNotifier;
-  final List<Area> areas;
+  final List<PolygonExt> areas;
+  final bool useOnEditingMode;
 
   @override
   Widget build(BuildContext context) {
@@ -101,25 +140,19 @@ class LoadedPolygon extends StatelessWidget {
       hitTestBehavior: HitTestBehavior.deferToChild,
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () {
-          final hitResult = hitNotifier.value;
-          if (hitResult != null) {
-            final isEditingMode =
-                context.read<MapViewControllerCubit>().onPolygonTap(hitResult);
-            if (isEditingMode) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'MAsz aktywną edycję obszaru, zapisz lub anuluj zmiany',
-                  ),
-                ),
-              );
-            }
-          }
-        },
+        onTap: useOnEditingMode
+            ? null
+            : () {
+                final hitResult = hitNotifier.value;
+                if (hitResult != null) {
+                  context
+                      .read<MapViewControllerCubit>()
+                      .onPolygonTap(hitResult);
+                }
+              },
         child: PolygonLayer(
           hitNotifier: hitNotifier,
-          polygons: areas.map((e) => e.polygon!).toList(),
+          polygons: areas,
         ),
       ),
     );
