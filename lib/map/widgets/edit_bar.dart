@@ -23,7 +23,19 @@ class EditBar extends StatelessWidget {
               icon: Icons.save,
               label: 'Zapisz zmiany',
               onPressed: () {
-                context.read<MapViewControllerCubit>().saveNewArea();
+                final mapState = context.read<MapViewControllerCubit>().state
+                    as MapViewControllerRefreshMap;
+
+                if (mapState.errorOnEdit != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: Colors.red,
+                      content: Text(mapState.errorOnEdit!),
+                    ),
+                  );
+                } else {
+                  context.read<MapViewControllerCubit>().saveNewArea();
+                }
               },
             ),
             const VerticalDivider(),

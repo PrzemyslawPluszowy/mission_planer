@@ -11,9 +11,11 @@ final class MapViewControllerRefreshMap extends MapViewControllerState {
     required this.areas,
     this.onEdit = false,
     this.polygonToEdit,
+    this.errorOnEdit,
   });
-  final List<Area> areas;
+  final List<PolygonExt> areas;
   final bool onEdit;
   final PolygonExt? polygonToEdit;
   final List<DragMarker> markers;
+  final String? errorOnEdit;
 }

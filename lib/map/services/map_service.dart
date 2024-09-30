@@ -1,17 +1,17 @@
+import 'dart:ui';
+
 import 'package:latlong2/latlong.dart';
-import 'package:mission_planer/map/entities/area.dart';
 import 'package:mission_planer/map/entities/polygon_ext.dart';
 
 class MapService {
-  List<Area> areas = [];
-  Area? selectedArea;
+  List<PolygonExt> areas = [];
 
-  List<Area> loadAreas() {
+  List<PolygonExt> loadAreas() {
     areas.addAll(mockAreas);
     return areas;
   }
 
-  Future<void> saveArea(Area area) async {
+  Future<void> saveArea(PolygonExt area) async {
     final index = areas.indexWhere((element) => element.uuid == area.uuid);
     if (index != -1) {
       areas[index] = area;
@@ -21,24 +21,19 @@ class MapService {
   }
 }
 
-final List<Area> mockAreas = [
-  Area(
+final List<PolygonExt> mockAreas = [
+  PolygonExt(
     uuid: '1',
     name: 'Area 1',
-    description: 'Description of Area 1',
-    polygon: PolygonExt(
-      hitValue: '1',
-      uuid: '1',
-      name: 'Area 1',
-      description: 'Description of Area 1',
-      points: [
-        const LatLng(50.0617, 19.9383), // Kraków - Wawel
-        const LatLng(50.0627, 19.9403), // Ulica Grodzka
-        const LatLng(50.0637, 19.9433), // Rynek Główny
-        const LatLng(50.0620, 19.9450), // Barbakan
-        const LatLng(50.0600, 19.9420),
-      ],
-    ),
-    subareas: [],
+    description: 'Area 1 description',
+    color: const Color.fromARGB(78, 0, 0, 255),
+    points: [
+      const LatLng(51.5, -0.09),
+      const LatLng(51.5, -0.08),
+      const LatLng(51.6, -0.08),
+      const LatLng(51.6, -0.09),
+    ],
+    hitValue: '1',
+    type: AreaType.mainArea,
   ),
 ];
