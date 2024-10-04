@@ -1,6 +1,8 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mission_planer/map/cubit/map_view_controller_cubit.dart';
+import 'package:mission_planer/map/entities/polygon_ext.dart';
 import 'package:mission_planer/map/services/map_configuration.dart';
 
 class EditBar extends StatelessWidget {
@@ -18,6 +20,25 @@ class EditBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 150,
+              child: TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Maksymalna strefa lotu',
+                ),
+                initialValue: _findFancyAreaOffset(context),
+                onChanged: (value) {
+                  final newValue = double.tryParse(value);
+                  if (newValue != null) {
+                    context.read<MapViewControllerCubit>().offsetFancyArea =
+                        newValue;
+                  }
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            const VerticalDivider(width: 1),
             _buildActionButton(
               context: context,
               icon: Icons.save,
@@ -96,5 +117,19 @@ class EditBar extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _findFancyAreaOffset(BuildContext context) {
+    final fancyArea = context
+        .read<MapViewControllerCubit>()
+        .hidePolygonsOnEdit
+        ?.firstWhereOrNull(
+          (element) => element.type == AreaType.fancyArea,
+        );
+    if (fancyArea != null) {
+      return fancyArea.offset.toString();
+    } else {
+      return '0';
+    }
   }
 }

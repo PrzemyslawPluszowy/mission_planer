@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:dart_jts/dart_jts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mission_planer/map/entities/polygon_ext.dart';
 
@@ -40,18 +43,60 @@ class PolygonHelper {
 
   static List<MappedArea> mapToSubAreas(List<PolygonExt> areas) {
     final mappedAreas = <MappedArea>[];
+
     for (final area in areas) {
-      if (area.assignedMainArea != null) {
-        final mainArea = mappedAreas.firstWhere(
-          (element) => element.mainPolygon.uuid == area.assignedMainArea!,
-          orElse: () => MappedArea(mainPolygon: area, subPolygons: []),
+      if (area.type == AreaType.mainArea) {
+        final subAreas = areas
+            .where(
+              (subArea) => subArea.assignedMainArea == area.uuid,
+            )
+            .toList();
+
+        final mainPolygon = area;
+        final subPolygons = subAreas;
+
+        mappedAreas.add(
+          MappedArea(
+            mainPolygon: mainPolygon,
+            subPolygons: subPolygons,
+          ),
         );
-        mainArea.subPolygons.add(area);
-      } else {
-        mappedAreas.add(MappedArea(mainPolygon: area, subPolygons: []));
       }
     }
     return mappedAreas;
+  }
+
+  static const double earthRadius = 6378137; // Promień Ziemi w metrach
+  static double metersToDegreesLatitude(double meters) {
+    return meters / 111320.0; // Stała wartość dla szerokości geograficznej
+  }
+
+  static double metersToDegreesLongitude(double meters, double latitude) {
+    return meters / (111320.0 * cos(latitude * pi / 180));
+  }
+
+  static List<LatLng> generateFancyZone(
+    List<LatLng> points,
+    double offsetInMeters,
+  ) {
+    final geometryFactory = GeometryFactory.defaultPrecision();
+    final coordinates = points
+        .map((point) => Coordinate(point.longitude, point.latitude))
+        .toList();
+    if (coordinates.first != coordinates.last) {
+      coordinates.add(coordinates.first);
+    }
+    final linearRing = geometryFactory.createLinearRing(coordinates);
+
+    final polygon = geometryFactory.createPolygon(linearRing, []);
+    final bufferDistanceLatitude = metersToDegreesLatitude(offsetInMeters);
+    final bufferPolygon = polygon.buffer(bufferDistanceLatitude);
+    final extendedPolygonArea = bufferPolygon
+        .getCoordinates()
+        .map((coord) => LatLng(coord.y, coord.x))
+        .toList();
+
+    return extendedPolygonArea;
   }
 }
 

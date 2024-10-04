@@ -64,7 +64,7 @@ class _MapViewState extends State<MapView> {
             ],
           );
         } else {
-          return const CircularProgressIndicator();
+          return const Center(child: CircularProgressIndicator());
         }
       },
     );

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mission_planer/map/services/map_configuration.dart';
+import 'package:uuid/uuid.dart';
 
 enum AreaType {
+  fancyArea,
   mainArea,
   subArea,
   noFlyZone;
@@ -16,6 +18,8 @@ enum AreaType {
         return MapConfiguration.defaultSubAreaColor;
       case AreaType.noFlyZone:
         return MapConfiguration.defaultNoFlyZoneColor;
+      case AreaType.fancyArea:
+        return const Color.fromARGB(108, 244, 67, 54);
     }
   }
 }
@@ -29,13 +33,39 @@ class PolygonExt extends Polygon {
     required super.hitValue,
     required this.type,
     required super.color,
+    this.offset = 0,
     this.assignedMainArea,
+    super.isFilled = true,
+    super.borderColor = Colors.transparent,
+    super.borderStrokeWidth = MapConfiguration.defaultPolygonStrokeWidth,
   });
+
+  factory PolygonExt.fancyZone({
+    required List<LatLng> points,
+    required String assignedMainArea,
+    required double offset,
+  }) {
+    return PolygonExt(
+      hitValue: '',
+      uuid: const Uuid().v4(),
+      name: 'Strefa buforowa',
+      description: '',
+      points: points,
+      offset: offset,
+      type: AreaType.fancyArea,
+      color: const Color.fromARGB(0, 0, 0, 0),
+      borderStrokeWidth: 1,
+      assignedMainArea: assignedMainArea,
+      isFilled: false,
+      borderColor: Colors.black,
+    );
+  }
   final String uuid;
   final String name;
   final String description;
   final AreaType type;
   final String? assignedMainArea;
+  final double offset;
 
   PolygonExt copyWith({
     String? uuid,

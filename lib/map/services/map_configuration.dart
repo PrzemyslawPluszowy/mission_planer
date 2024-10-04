@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 class MapConfiguration {
-  static const double initialZoom = 15;
+  static const double initialZoom = 17;
   static const String tileUrlTemplate =
       'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   //w razie problemow z gps ustawia start na Kraków
