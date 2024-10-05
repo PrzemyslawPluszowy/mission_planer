@@ -1,4 +1,5 @@
 import 'package:bloc/bloc.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_dragmarker/flutter_map_dragmarker.dart';
@@ -22,7 +23,8 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   late final MapController mapController;
   late LatLng latLngCenterPoint;
   late PolyEditor _polyEditor;
-  PolygonExt? _hidePolygonOnEdit;
+  List<PolygonExt>? hidePolygonsOnEdit;
+  double offsetFancyArea = 0;
 
   /// Inicjalizuje `MapController` i nasłuchuje na środkowy punkt mapy.
   void _initializeMapController() {
@@ -32,7 +34,7 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     });
   }
 
-  /// Ładuje początkowe obszary i
+  /// Ładuje początkowe obszary backendu i
   ///  emituje je w stanie `MapViewControllerRefreshMap`.
   void _loadInitialAreas() {
     final areas = _mapService.loadAreas();
@@ -40,27 +42,44 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   }
 
   /// Tworzy nowy wielokąt, którego pierwszy punkt to środek mapy.
+  /// implementuje [_createTriangleArea] która na podstawie punktu startowego
+  /// tworzy trójkąt,
   PolygonExt _createNewPolygon({
     required AreaType areaType,
     String? nestedUuid,
+    Color? color,
   }) {
     final uuid = const Uuid().v4();
     return PolygonExt(
       assignedMainArea: nestedUuid,
       type: areaType,
-      color: areaType.color,
+      color: color ?? areaType.color,
       hitValue: uuid,
       uuid: uuid,
       name: MapConfiguration.defaultPolygonName,
       description: MapConfiguration.defaultPolygonDescription,
-      points: [latLngCenterPoint],
+      points: _createTriangleArea(latLngCenterPoint),
     );
   }
 
-  /// Dodaje nowy wielokąt z punktem centralnym mapy.
-  void addNewPolygon(AreaType areaType, String? nestedUuid) {
-    final newPolygon =
-        _createNewPolygon(areaType: areaType, nestedUuid: nestedUuid);
+  ///Tworzy przykładowe pole na podstawie pobranego centralnego punktu na mapie
+  /// używane do tworzenia nowego wielokąta, aby użytownik nie widział
+  ///  tylko jednego punktu startowego
+  List<LatLng> _createTriangleArea(LatLng startPoint) {
+    return [
+      startPoint,
+      LatLng(startPoint.latitude + 0.0003, startPoint.longitude + 0.0003),
+      LatLng(startPoint.latitude + 0.0003, startPoint.longitude - 0.0003),
+    ];
+  }
+
+  /// Na podstawie nowego wielokąta rozpoczyna edycję wielokąta.
+  void addNewPolygon(AreaType areaType, String? nestedUuid, Color? color) {
+    final newPolygon = _createNewPolygon(
+      areaType: areaType,
+      nestedUuid: nestedUuid,
+      color: color,
+    );
     final currentAreas = _getCurrentAreas();
     _initializePolygonEditor(
       polygonToEdit: newPolygon,
@@ -69,24 +88,35 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     );
   }
 
+  /// Przesuwa mapę na podany punkt.
+  void _moveMap(LatLng point) {
+    mapController.move(point, MapConfiguration.initialZoom);
+  }
+
   /// Rozpoczyna edycję istniejącego wielokąta na podstawie jego UUID.
-  /// Zapisuje zmiany, jeśli inny wielokąt jest aktualnie edytowany.
-  void editExistingPolygon(String uuid) {
+  /// > Pobiera wszzytkie obszary które są w state
+  /// > przesuwa mapę na pierwszy punkt
+  /// > sprawdza czy wielokąt nie jest typu [AreaType.mainArea]
+  /// oraz wyszukuje wielokąt który jest przypisany do tego wielokąta
+  /// służy do sprawdzania czy użytkonik nie wyszedł poza obszar główny
+  void editExistingPolygon(PolygonExt polygonToEdit) {
     final currentAreas = _getCurrentAreas();
-    final mainUuid = currentAreas
-        .firstWhere((element) => element.uuid == uuid)
-        .assignedMainArea;
-    final polygonToEdit =
-        currentAreas.firstWhere((element) => element.uuid == uuid);
-    mapController.move(
+    _moveMap(
+      // przesuwa mapę na pierwszy punkt wielokąta
       LatLng(
         polygonToEdit.points.first.latitude,
         polygonToEdit.points.first.longitude,
       ),
-      MapConfiguration.initialZoom,
     );
-
-    _hideEditingElement(uuid);
+    String? mainUuid;
+    if (polygonToEdit.type != AreaType.mainArea) {
+      mainUuid = currentAreas
+          .firstWhereOrNull(
+            (element) => polygonToEdit.assignedMainArea == element.uuid,
+          )
+          ?.uuid;
+    }
+    _hideEditingElement(polygonToEdit.uuid);
     _initializePolygonEditor(
       polygonToEdit: polygonToEdit,
       currentAreas: currentAreas,
@@ -95,15 +125,35 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   }
 
   /// Ukrywa aktualnie edytowany wielokąt, aby edytor mógł operować
-  /// na nowym wielokącie.
+  /// na nowym wielokącie. Funckja usuwa wielokąt z listy obszarów
+  /// oraz zapisuje go jako temp któ®y jest przywracany podczas zapisu
   void _hideEditingElement(String uuid) {
     final currentAreas = _getCurrentAreas();
     final polygonToEdit =
         currentAreas.firstWhere((element) => element.uuid == uuid);
 
-    _hidePolygonOnEdit = polygonToEdit;
+    // Sprawdzenie, czy obszar do edycji jest głównym obszarem
+    if (polygonToEdit.type == AreaType.mainArea) {
+      final fancyArea = currentAreas.firstWhereOrNull(
+        (element) =>
+            element.assignedMainArea == polygonToEdit.uuid &&
+            element.type == AreaType.fancyArea,
+      );
+      if (fancyArea != null) {
+        currentAreas.removeWhere((element) => element.uuid == fancyArea.uuid);
+      }
+
+      // Dodanie fancyArea do listy ukrywanych poligonów
+      hidePolygonsOnEdit = [polygonToEdit, if (fancyArea != null) fancyArea];
+    } else {
+      // Jeśli to nie główny obszar, ukrywamy tylko edytowany poligon
+      hidePolygonsOnEdit = [polygonToEdit];
+    }
+
+    // Usunięcie poligonu do edycji z aktualnych obszarów
     currentAreas.removeWhere((element) => element.uuid == uuid);
 
+    // Emitowanie zdarzenia aktualizującego mapę
     emit(
       MapViewControllerRefreshMap(
         areas: currentAreas,
@@ -114,31 +164,47 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   }
 
   /// Inicjalizuje edytor wielokątów dla podanego wielokąta.
+  /// w callbacku onPointsUpdated sprawdzane jest czy wielokąt nie wyszedł
+  ///  poza obszar główny i przekazywna jest informacja do UI,
+  /// emituje stan po jakielkiejkolwiek zmianie
   void _initializePolygonEditor({
     required PolygonExt polygonToEdit,
     required List<PolygonExt> currentAreas,
     String? mainUuid,
   }) {
-    List<LatLng>? mainAreaPoint;
-
-    try {
-      mainAreaPoint =
-          currentAreas.firstWhere((element) => element.uuid == mainUuid).points;
-    } catch (e) {
-      mainAreaPoint = null; // Zwrócenie null, gdy nie ma dopasowania
+    final mainAreaPoint = currentAreas
+        .firstWhereOrNull((element) => element.uuid == mainUuid)
+        ?.points;
+    final snapPoints = <List<LatLng>>[];
+    if (mainAreaPoint != null) {
+      snapPoints
+        ..add(mainAreaPoint)
+        ..addAll(
+          currentAreas
+              .where(
+                (element) =>
+                    element.uuid != polygonToEdit.uuid &&
+                    element.type != AreaType.fancyArea,
+              )
+              .map((e) => e.points),
+        );
     }
 
     _polyEditor = PolyEditor(
       intermediateIcon: MapConfiguration.intermediateIcon,
       pointIcon: MapConfiguration.pointIcon,
+      snapPoints: snapPoints,
       points: List<LatLng>.from(polygonToEdit.points),
       onPointsUpdated: (updatedPoints, markers) {
-        final hasErr = PolygonHelper.isPolygonInsidePolygon(
-          updatedPoints,
-          mainAreaPoint ?? [],
-        );
+        var hasErr = false;
+        if (polygonToEdit.type != AreaType.mainArea) {
+          hasErr = !PolygonHelper.isPolygonInsidePolygon(
+            updatedPoints,
+            mainAreaPoint ?? [],
+          );
+        }
         _onPointsUpdated(
-          !hasErr,
+          hasErr,
           updatedPoints,
           markers,
           polygonToEdit,
@@ -171,7 +237,7 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   }
 
   /// Emituje zaktualizowany stan mapy z nowymi markerami
-  /// i edytowanym wielokątem.
+  /// i edytowanym wielokątem. funkcja pomocnicza
   void _emitUpdatedMapState(
     List<PolygonExt> currentAreas,
     List<DragMarker> markers,
@@ -207,6 +273,11 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
 
   /// Obsługuje kliknięcie użytkownika na wielokąt.
   /// Sprawdza, czy należy rozpocząć edycję klikniętego wielokąta.
+  /// sprawdza czy element nie jest typu [ AreaType.fancyArea],
+  /// który jest nieedytowalny i tworzy sie automatycznie
+  /// jesli element jest typu [AreaType.mainArea]
+  /// usuwa element [AreaType.fancyArea],
+  ///  któ®y zostanie utworzony podczas zapisu
   bool onPolygonTap(LayerHitResult<Object> hitResult) {
     final isEditingMode = (state as MapViewControllerRefreshMap).onEdit;
     if (isEditingMode) {
@@ -214,7 +285,12 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     }
     final tapedUuid = hitResult.hitValues.firstOrNull as String?;
     if (tapedUuid != null) {
-      editExistingPolygon(tapedUuid);
+      final polygonToEdit = _getCurrentAreas().firstWhereOrNull(
+        (element) =>
+            element.uuid == tapedUuid && element.type != AreaType.fancyArea,
+      );
+      if (polygonToEdit == null) return false;
+      editExistingPolygon(polygonToEdit);
     }
     return false;
   }
@@ -223,21 +299,16 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   void cancelEditing() {
     final currentAreas = _getCurrentAreas();
 
-    if (_hidePolygonOnEdit != null) {
-      currentAreas.add(
-        PolygonExt(
-          uuid: _hidePolygonOnEdit!.uuid,
-          name: _hidePolygonOnEdit!.name,
-          description: _hidePolygonOnEdit!.description,
-          points: List<LatLng>.from(_hidePolygonOnEdit!.points),
-          color: _hidePolygonOnEdit!.color,
-          type: _hidePolygonOnEdit!.type,
-          assignedMainArea: _hidePolygonOnEdit!.assignedMainArea,
-          hitValue: _hidePolygonOnEdit!.hitValue,
-        ),
+    if (hidePolygonsOnEdit != null) {
+      currentAreas.addAll(
+        hidePolygonsOnEdit!,
       );
-      _hidePolygonOnEdit = null;
+      hidePolygonsOnEdit = null;
     }
+    //sortuje miejsca klikalne według enuma [AreaType]
+    currentAreas.sort(
+      (a, b) => a.type.index.compareTo(b.type.index),
+    );
 
     emit(MapViewControllerRefreshMap(areas: currentAreas, markers: const []));
   }
@@ -246,10 +317,22 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   void saveNewArea() {
     final currentAreas = _getCurrentAreas();
     final newPolygon = _getPolygonToEdit();
+    PolygonExt? fancyArea;
 
     if (newPolygon == null) return;
+    if (newPolygon.type == AreaType.mainArea) {
+      fancyArea = PolygonExt.fancyZone(
+        offset: offsetFancyArea,
+        points: PolygonHelper.generateFancyZone(
+          newPolygon.points,
+          offsetFancyArea,
+        ),
+        assignedMainArea: newPolygon.uuid,
+      );
+    }
 
-    final updatedAreas = _createUpdatedAreas(currentAreas, newPolygon);
+    final updatedAreas =
+        _createUpdatedAreas(currentAreas, newPolygon, fancyArea);
     emit(MapViewControllerRefreshMap(areas: updatedAreas, markers: const []));
   }
 
@@ -257,9 +340,11 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   List<PolygonExt> _createUpdatedAreas(
     List<PolygonExt> currentAreas,
     PolygonExt newPolygon,
+    PolygonExt? fancyArea,
   ) {
     final updatedAreas = [
       ...currentAreas,
+      if (fancyArea != null) fancyArea,
       newPolygon,
     ]..sort(
         (a, b) {
@@ -288,7 +373,6 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   /// Zwraca `false`, gdy pozostał tylko jeden punkt.
   bool undoCreatedPoints() {
     _polyEditor.removeLastPoint();
-
     if (_polyEditor.points.length == 1) {
       return false;
     } else {
@@ -296,6 +380,8 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     }
   }
 
+  /// Zmienia nazwę wielokąta na podstawie podanej wartości.
+  /// zmiany zapisywane są podczas zapisu nowego/edytowanego obszaru.
   void changePolygonName(String value) {
     if (value.isEmpty) return;
     final polygonToEdit = _getPolygonToEdit();
@@ -312,6 +398,8 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     }
   }
 
+  /// Zmienia opis wielokąta na podstawie wprowadzonej wartości.
+  /// zmiany zapisywane są podczas zapisu nowego/edytowanego obszaru.
   void changePolygonDescription(String value) {
     if (value.isEmpty) return;
     final polygonToEdit = _getPolygonToEdit();
@@ -328,6 +416,9 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     }
   }
 
+  /// Usuwa wielokąt na podstawie podanego UUID.
+  /// Jeśli usuwany wielokąt główny nastepuje kaskadowe usunięcie
+  /// z pod elementami
   void deletePolygon(String uuid, AreaType type) {
     final currentAreas = List<PolygonExt>.from(_getCurrentAreas());
 

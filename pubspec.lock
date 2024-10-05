@@ -22,6 +22,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.7.0"
+  ansicolor:
+    dependency: transitive
+    description:
+      name: ansicolor
+      sha256: "50e982d500bc863e1d703448afdbf9e5a72eb48840a4f766fa361ffd6877055f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.3"
   args:
     dependency: transitive
     description:
@@ -79,7 +87,7 @@ packages:
     source: hosted
     version: "1.1.1"
   collection:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: collection
       sha256: ee67cb0715911d28db6bf4af1026078bd6f0128b07a5f66fb2ed94ec6783c09a
@@ -118,6 +126,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
+  dart_jts:
+    dependency: "direct main"
+    description:
+      name: dart_jts
+      sha256: f9cb8b359346f453b5bfa2186fcd7fb8a7e6fbc7e076cba46898b44edd6fd8c7
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.0+1"
   diff_match_patch:
     dependency: transitive
     description:
@@ -310,7 +326,7 @@ packages:
     source: hosted
     version: "1.0.1"
   logger:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: logger
       sha256: "697d067c60c20999686a0add96cf6aba723b3aa1f83ecf806a8097231529ec32"
@@ -546,6 +562,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
+  talker:
+    dependency: "direct main"
+    description:
+      name: talker
+      sha256: "30bbc526bb2e7d465c630f087479616b6b84570728539fde536a3b652acad2f6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.4.1"
+  talker_logger:
+    dependency: transitive
+    description:
+      name: talker_logger
+      sha256: "515d2e5803928b2bab42108f710c814743965f939be2b4261f9c3045ef8a3fba"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.4.1"
   term_glyph:
     dependency: transitive
     description:

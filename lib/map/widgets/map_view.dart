@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_dragmarker/flutter_map_dragmarker.dart';
+import 'package:mission_planer/map/cubit/map_style_cubit.dart';
 import 'package:mission_planer/map/cubit/map_view_controller_cubit.dart';
 import 'package:mission_planer/map/entities/polygon_ext.dart';
 import 'package:mission_planer/map/services/map_configuration.dart';
@@ -40,8 +41,12 @@ class _MapViewState extends State<MapView> {
                   initialZoom: MapConfiguration.initialZoom,
                 ),
                 children: [
-                  TileLayer(
-                    urlTemplate: MapConfiguration.tileUrlTemplate,
+                  BlocBuilder<MapStyleCubit, MapStyleState>(
+                    builder: (context, state) {
+                      return TileLayer(
+                        urlTemplate: state.mapStyle.getTemplateUrl(),
+                      );
+                    },
                   ),
 
                   /// if edit mode is off and there are areas to display
@@ -61,10 +66,20 @@ class _MapViewState extends State<MapView> {
               ),
               if (state.onEdit) const EditBar(),
               if (state.errorOnEdit != null) _errorEditingArea(state),
+              Positioned(
+                bottom: 50,
+                right: 30,
+                child: FloatingActionButton(
+                  onPressed: () {
+                    context.read<MapStyleCubit>().changeStyle();
+                  },
+                  child: const Icon(Icons.satellite_alt_sharp),
+                ),
+              ),
             ],
           );
         } else {
-          return const CircularProgressIndicator();
+          return const Center(child: CircularProgressIndicator());
         }
       },
     );
