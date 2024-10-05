@@ -53,11 +53,11 @@ class PolygonExt extends Polygon {
       points: points,
       offset: offset,
       type: AreaType.fancyArea,
-      color: const Color.fromARGB(0, 0, 0, 0),
+      color: const Color.fromARGB(111, 0, 0, 0),
       borderStrokeWidth: 1,
       assignedMainArea: assignedMainArea,
       isFilled: false,
-      borderColor: Colors.black,
+      borderColor: const Color.fromARGB(184, 0, 0, 0),
     );
   }
   final String uuid;

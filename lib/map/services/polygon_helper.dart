@@ -2,16 +2,51 @@ import 'dart:math';
 
 import 'package:dart_jts/dart_jts.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:mission_planer/map/entities/polygon_ext.dart';
 
 class PolygonHelper {
-  static bool isPointInPolygon(LatLng point, List<LatLng> polygon) {
-    var intersections = 0;
+  static const double earthRadius = 6378137; // Promień Ziemi w metrach
 
+  // Sprawdza, czy wewnętrzny wielokąt mieści się w zewnętrznym
+  static bool isPolygonInsidePolygon(
+    List<LatLng> innerPolygon,
+    List<LatLng> outerPolygon, {
+    double snapTolerance = 0.00000001,
+  }) {
+    if (outerPolygon.isEmpty) return false; // Zmiana na false
+
+    // Sprawdź, czy każdy punkt wewnętrznego wielokąta
+    // znajduje się w zewnętrznym wielokącie lub na jego krawędzi
+    for (final point in innerPolygon) {
+      if (!isPointInPolygon(
+            point,
+            outerPolygon,
+            snapTolerance: snapTolerance,
+          ) &&
+          !isPointOnPolygonEdge(
+            point,
+            outerPolygon,
+            snapTolerance: snapTolerance,
+          )) {
+        return false; // Jeśli którykolwiek punkt jest poza, zwróć false
+      }
+    }
+
+    // Jeśli nie ma pokrycia, zwróć true
+    return true;
+  }
+
+  // Sprawdza, czy punkt znajduje się wewnątrz wielokąta
+  static bool isPointInPolygon(
+    LatLng point,
+    List<LatLng> polygon, {
+    double snapTolerance = 0.00000001,
+  }) {
+    var intersections = 0;
     for (var i = 0; i < polygon.length; i++) {
       final vertex1 = polygon[i];
       final vertex2 = polygon[(i + 1) % polygon.length];
 
+      // Sprawdza, czy linia pionowa przechodzi przez odcinek wielokąta
       if ((vertex1.latitude > point.latitude) !=
           (vertex2.latitude > point.latitude)) {
         final atLongitude = (point.latitude - vertex1.latitude) *
@@ -24,57 +59,76 @@ class PolygonHelper {
         }
       }
     }
-
     return intersections.isOdd;
   }
 
-  static bool isPolygonInsidePolygon(
-    List<LatLng> innerPolygon,
-    List<LatLng> outerPolygon,
+  // Dodaje funkcję, która sprawdza, czy punkt leży na krawędzi wielokąta
+  static bool isPointOnPolygonEdge(
+    LatLng point,
+    List<LatLng> polygon, {
+    double snapTolerance = 1e-10,
+  }) {
+    for (var i = 0; i < polygon.length; i++) {
+      final vertex1 = polygon[i];
+      final vertex2 = polygon[(i + 1) % polygon.length];
+      if (isPointOnLineSegment(point, vertex1, vertex2, snapTolerance)) {
+        return true; // Punkt leży na krawędzi
+      }
+    }
+    return false; // Punkt nie leży na żadnej krawędzi
+  }
+
+  // Funkcja sprawdzająca, czy punkt leży na odcinku
+  static bool isPointOnLineSegment(
+    LatLng point,
+    LatLng lineStart,
+    LatLng lineEnd,
+    double snapTolerance,
   ) {
-    if (outerPolygon.isEmpty) return true;
-    for (final point in innerPolygon) {
-      if (!isPointInPolygon(point, outerPolygon)) {
-        return false;
-      }
+    final crossProduct = (point.latitude - lineStart.latitude) *
+            (lineEnd.longitude - lineStart.longitude) -
+        (point.longitude - lineStart.longitude) *
+            (lineEnd.latitude - lineStart.latitude);
+
+    if (crossProduct.abs() > snapTolerance) {
+      return false; // Punkt nie leży na linii
     }
-    return true;
+
+    final dotProduct = (point.latitude - lineStart.latitude) *
+            (lineEnd.latitude - lineStart.latitude) +
+        (point.longitude - lineStart.longitude) *
+            (lineEnd.longitude - lineStart.longitude);
+    if (dotProduct < -snapTolerance) {
+      return false; // Punkt leży przed punktem początkowym
+    }
+
+    final squaredLength = (lineEnd.latitude - lineStart.latitude) *
+            (lineEnd.latitude - lineStart.latitude) +
+        (lineEnd.longitude - lineStart.longitude) *
+            (lineEnd.longitude - lineStart.longitude);
+    if (dotProduct > squaredLength + snapTolerance) {
+      return false; // Punkt leży za punktem końcowym
+    }
+
+    return true; // Punkt leży na odcinku
   }
 
-  static List<MappedArea> mapToSubAreas(List<PolygonExt> areas) {
-    final mappedAreas = <MappedArea>[];
-
-    for (final area in areas) {
-      if (area.type == AreaType.mainArea) {
-        final subAreas = areas
-            .where(
-              (subArea) => subArea.assignedMainArea == area.uuid,
-            )
-            .toList();
-
-        final mainPolygon = area;
-        final subPolygons = subAreas;
-
-        mappedAreas.add(
-          MappedArea(
-            mainPolygon: mainPolygon,
-            subPolygons: subPolygons,
-          ),
-        );
-      }
-    }
-    return mappedAreas;
-  }
-
-  static const double earthRadius = 6378137; // Promień Ziemi w metrach
+  // Konwertuje odległość w metrach na stopnie szerokości geograficznej
   static double metersToDegreesLatitude(double meters) {
-    return meters / 111320.0; // Stała wartość dla szerokości geograficznej
+    return meters / 111320.0;
   }
 
+  // Konwertuje odległość w metrach na stopnie długości geograficznej
   static double metersToDegreesLongitude(double meters, double latitude) {
     return meters / (111320.0 * cos(latitude * pi / 180));
   }
 
+  // Oblicza liczbę segmentów kwadrantu na podstawie liczby wierzchołków
+  static int calculateQuadrantSegments(int numVertices) {
+    return -10 * numVertices;
+  }
+
+  // Generuje rozszerzoną strefę (np. bufory wokół wielokąta)
   static List<LatLng> generateFancyZone(
     List<LatLng> points,
     double offsetInMeters,
@@ -83,28 +137,26 @@ class PolygonHelper {
     final coordinates = points
         .map((point) => Coordinate(point.longitude, point.latitude))
         .toList();
-    if (coordinates.first != coordinates.last) {
-      coordinates.add(coordinates.first);
-    }
-    final linearRing = geometryFactory.createLinearRing(coordinates);
 
+    if (coordinates.first != coordinates.last) {
+      coordinates.add(coordinates.first); // Zamknięcie wielokąta
+    }
+
+    final linearRing = geometryFactory.createLinearRing(coordinates);
     final polygon = geometryFactory.createPolygon(linearRing, []);
+
     final bufferDistanceLatitude = metersToDegreesLatitude(offsetInMeters);
-    final bufferPolygon = polygon.buffer(bufferDistanceLatitude);
-    final extendedPolygonArea = bufferPolygon
+    final quadrantSegments = calculateQuadrantSegments(points.length);
+
+    final bufferPolygon = polygon.buffer3(
+      bufferDistanceLatitude,
+      quadrantSegments,
+      BufferOp.CAP_BUTT,
+    );
+
+    return bufferPolygon
         .getCoordinates()
         .map((coord) => LatLng(coord.y, coord.x))
         .toList();
-
-    return extendedPolygonArea;
   }
-}
-
-class MappedArea {
-  MappedArea({
-    required this.mainPolygon,
-    required this.subPolygons,
-  });
-  final PolygonExt mainPolygon;
-  final List<PolygonExt> subPolygons;
 }

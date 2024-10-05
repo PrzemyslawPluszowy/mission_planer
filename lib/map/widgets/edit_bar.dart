@@ -21,21 +21,31 @@ class EditBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             const SizedBox(width: 8),
-            SizedBox(
-              width: 150,
-              child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Maksymalna strefa lotu',
-                ),
-                initialValue: _findFancyAreaOffset(context),
-                onChanged: (value) {
-                  final newValue = double.tryParse(value);
-                  if (newValue != null) {
-                    context.read<MapViewControllerCubit>().offsetFancyArea =
-                        newValue;
+            BlocBuilder<MapViewControllerCubit, MapViewControllerState>(
+              builder: (context, state) {
+                if (state is MapViewControllerRefreshMap) {
+                  if (state.polygonToEdit?.type == AreaType.mainArea) {
+                    return SizedBox(
+                      width: 150,
+                      child: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'Maksymalna strefa lotu',
+                        ),
+                        initialValue: _findFancyAreaOffset(context),
+                        onChanged: (value) {
+                          final newValue = double.tryParse(value);
+                          if (newValue != null) {
+                            context
+                                .read<MapViewControllerCubit>()
+                                .offsetFancyArea = newValue;
+                          }
+                        },
+                      ),
+                    );
                   }
-                },
-              ),
+                }
+                return const SizedBox();
+              },
             ),
             const SizedBox(width: 8),
             const VerticalDivider(width: 1),

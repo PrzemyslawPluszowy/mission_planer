@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mission_planer/map/cubit/map_view_controller_cubit.dart';
+import 'package:mission_planer/map/entities/mapped_area.dart';
 import 'package:mission_planer/map/entities/polygon_ext.dart';
-import 'package:mission_planer/map/services/polygon_helper.dart';
+import 'package:mission_planer/map/services/map_configuration.dart';
 
 class ListAreas extends StatelessWidget {
   const ListAreas({
@@ -13,7 +16,7 @@ class ListAreas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mappedAreas = PolygonHelper.mapToSubAreas(areas);
+    final mappedAreas = MappedArea.mapToSubAreas(areas);
     return ListView.builder(
       itemCount: mappedAreas.length,
       itemBuilder: (context, index) {
@@ -33,7 +36,7 @@ class ListAreas extends StatelessWidget {
             onPressed: () => context
                 .read<MapViewControllerCubit>()
                 .editExistingPolygon(mappedArea.mainPolygon),
-            icon: const Icon(Icons.edit_location_alt),
+            icon: const Icon(Icons.edit_location_alt, size: 17),
           ),
           IconButton(
             onPressed: () =>
@@ -41,7 +44,15 @@ class ListAreas extends StatelessWidget {
                       mappedArea.mainPolygon.uuid,
                       mappedArea.mainPolygon.type,
                     ),
-            icon: const Icon(Icons.delete),
+            icon: const Icon(Icons.delete, size: 17),
+          ),
+          IconButton(
+            onPressed: () =>
+                context.read<MapViewControllerCubit>().mapController.move(
+                      mappedArea.mainPolygon.points.first,
+                      MapConfiguration.initialZoom,
+                    ),
+            icon: const Icon(Icons.pin_drop, size: 17),
           ),
         ],
       ),
@@ -81,7 +92,7 @@ class ListAreas extends StatelessWidget {
   List<Widget> _buildSubAreaTiles(BuildContext context, MappedArea mappedArea) {
     return mappedArea.subPolygons.map((subArea) {
       return ListTile(
-        leading: _selectIcon(subArea.type),
+        leading: Icon(_selectIcon(subArea.type).icon, color: subArea.color),
         dense: true,
         trailing: _buildEditAndDeleteButtons(context, subArea),
         contentPadding: const EdgeInsets.only(left: 20, right: 10),
@@ -109,9 +120,13 @@ class ListAreas extends StatelessWidget {
     return Row(
       children: [
         IconButton(
-          onPressed: () => context
-              .read<MapViewControllerCubit>()
-              .addNewPolygon(areaType, uuid),
+          onPressed: () => context.read<MapViewControllerCubit>().addNewPolygon(
+                areaType,
+                uuid,
+                areaType == AreaType.noFlyZone
+                    ? Colors.red.withOpacity(0.3)
+                    : randomColor(),
+              ),
           icon: const Icon(Icons.add_box_rounded),
         ),
         Text(label, style: const TextStyle(fontSize: 10)),
@@ -152,5 +167,10 @@ class ListAreas extends StatelessWidget {
       case AreaType.fancyArea:
         return const Icon(Icons.map);
     }
+  }
+
+  Color randomColor() {
+    return Colors.primaries[Random().nextInt(Colors.primaries.length)]
+        .withOpacity(0.5);
   }
 }

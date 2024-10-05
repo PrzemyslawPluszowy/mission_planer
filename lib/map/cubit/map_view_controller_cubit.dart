@@ -47,12 +47,13 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   PolygonExt _createNewPolygon({
     required AreaType areaType,
     String? nestedUuid,
+    Color? color,
   }) {
     final uuid = const Uuid().v4();
     return PolygonExt(
       assignedMainArea: nestedUuid,
       type: areaType,
-      color: areaType.color,
+      color: color ?? areaType.color,
       hitValue: uuid,
       uuid: uuid,
       name: MapConfiguration.defaultPolygonName,
@@ -73,9 +74,12 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   }
 
   /// Na podstawie nowego wielokąta rozpoczyna edycję wielokąta.
-  void addNewPolygon(AreaType areaType, String? nestedUuid) {
-    final newPolygon =
-        _createNewPolygon(areaType: areaType, nestedUuid: nestedUuid);
+  void addNewPolygon(AreaType areaType, String? nestedUuid, Color? color) {
+    final newPolygon = _createNewPolygon(
+      areaType: areaType,
+      nestedUuid: nestedUuid,
+      color: color,
+    );
     final currentAreas = _getCurrentAreas();
     _initializePolygonEditor(
       polygonToEdit: newPolygon,
@@ -171,18 +175,36 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     final mainAreaPoint = currentAreas
         .firstWhereOrNull((element) => element.uuid == mainUuid)
         ?.points;
+    final snapPoints = <List<LatLng>>[];
+    if (mainAreaPoint != null) {
+      snapPoints
+        ..add(mainAreaPoint)
+        ..addAll(
+          currentAreas
+              .where(
+                (element) =>
+                    element.uuid != polygonToEdit.uuid &&
+                    element.type != AreaType.fancyArea,
+              )
+              .map((e) => e.points),
+        );
+    }
 
     _polyEditor = PolyEditor(
       intermediateIcon: MapConfiguration.intermediateIcon,
       pointIcon: MapConfiguration.pointIcon,
+      snapPoints: snapPoints,
       points: List<LatLng>.from(polygonToEdit.points),
       onPointsUpdated: (updatedPoints, markers) {
-        final hasErr = PolygonHelper.isPolygonInsidePolygon(
-          updatedPoints,
-          mainAreaPoint ?? [],
-        );
+        var hasErr = false;
+        if (polygonToEdit.type != AreaType.mainArea) {
+          hasErr = !PolygonHelper.isPolygonInsidePolygon(
+            updatedPoints,
+            mainAreaPoint ?? [],
+          );
+        }
         _onPointsUpdated(
-          !hasErr,
+          hasErr,
           updatedPoints,
           markers,
           polygonToEdit,
@@ -301,8 +323,10 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
     if (newPolygon.type == AreaType.mainArea) {
       fancyArea = PolygonExt.fancyZone(
         offset: offsetFancyArea,
-        points:
-            PolygonHelper.generateFancyZone(newPolygon.points, offsetFancyArea),
+        points: PolygonHelper.generateFancyZone(
+          newPolygon.points,
+          offsetFancyArea,
+        ),
         assignedMainArea: newPolygon.uuid,
       );
     }

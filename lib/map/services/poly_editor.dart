@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map_dragmarker/flutter_map_dragmarker.dart';
 import 'package:latlong2/latlong.dart';
@@ -9,11 +11,16 @@ class PolyEditor {
     required this.points,
     required this.pointIcon,
     required this.onPointsUpdated,
-    this.addClosePathMarker = false,
+    this.addClosePathMarker = true,
     this.pointIconSize = MapConfiguration.markerPointIconSize,
     this.intermediateIconSize = MapConfiguration.intermediateIconSize,
-  });
+    this.snapPoints = const [],
+    this.distanceThreshold = 5.0,
+  }) {
+    genratedExpandetSnapPoint = _expandSnapPoints();
+  }
 
+  // Pola klasy
   final List<LatLng> points;
   final Widget pointIcon;
   final Size pointIconSize;
@@ -21,65 +28,87 @@ class PolyEditor {
   final Size intermediateIconSize;
   final void Function(List<LatLng>, List<DragMarker>) onPointsUpdated;
   final bool addClosePathMarker;
-
+  final List<List<LatLng>> snapPoints;
+  final double distanceThreshold;
+  List<List<LatLng>> genratedExpandetSnapPoint = [];
   int? _markerToUpdate;
 
-  /// Aktualizacja punktu przy przeciąganiu markera
-  void updateMarker(DragUpdateDetails details, LatLng point) {
-    if (_markerToUpdate != null) {
-      points[_markerToUpdate!] = LatLng(point.latitude, point.longitude);
+  /// Przykleja punkt do najbliższego punktu w zewnętrznych
+  /// listach punktów, jeśli jest w zasięgu
+  LatLng _snapPoint(LatLng point) {
+    for (final snapList in genratedExpandetSnapPoint) {
+      for (final snapPoint in snapList) {
+        final distance = _calculateDistance(point, snapPoint);
+        if (distance < distanceThreshold) {
+          return snapPoint;
+        }
+      }
     }
-    _notifyUpdate(); // Wywołanie callbacka po aktualizacji
-  }
-
-  DragMarker getMarker(LatLng point, int index) {
-    return DragMarker(
-      point: point,
-      size: pointIconSize,
-      builder: (_, __, ___) => pointIcon,
-      onDragStart: (_, __) => _markerToUpdate = null,
-      onDragUpdate: updateMarker,
-      onLongPress: (ll) => removePoint(index),
-    );
-  }
-
-  /// Dodawanie nowego punktu
-  List<LatLng> addPoint(LatLng point) {
-    points.add(point);
-    _notifyUpdate(); // Wywołanie callbacka po dodaniu nowego punktu
-    return points;
-  }
-
-  /// Usuwanie punktu
-  LatLng removePoint(int index) {
-    final point = points.removeAt(index);
-    _notifyUpdate(); // Wywołanie callbacka po usunięciu punktu
     return point;
   }
 
+  /// Aktualizacja punktu przy przeciąganiu markera,
+  /// przykleja marker do najbliższego punktu w zasięgu
+  void updateMarker(DragUpdateDetails details, LatLng point) {
+    if (_markerToUpdate != null) {
+      points[_markerToUpdate!] = LatLng(point.latitude, point.longitude);
+      points[_markerToUpdate!] = _snapPoint(points[_markerToUpdate!]);
+    }
+    _notifyUpdate();
+  }
+
+  /// Oblicza odległość między dwoma punktami (w metrach)
+  double _calculateDistance(LatLng point1, LatLng point2) {
+    const earthRadius = 6378137;
+    final lat1 = point1.latitude * pi / 180;
+    final lat2 = point2.latitude * pi / 180;
+    final deltaLon = (point2.longitude - point1.longitude) * pi / 180;
+
+    final a = sin(deltaLon / 2) * sin(deltaLon / 2) +
+        cos(lat1) *
+            cos(lat2) *
+            sin((point2.latitude - point1.latitude) * pi / 180) *
+            sin((point2.latitude - point1.latitude) * pi / 180);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    return earthRadius * c;
+  }
+
+  /// Powiadamia o aktualizacji markerów i punktów
+  void _notifyUpdate() {
+    final markers = getMarkers();
+    onPointsUpdated(points, markers);
+  }
+
+  /// Dodawanie nowego punktu do listy
+  List<LatLng> addPoint(LatLng point) {
+    points.add(point);
+    _notifyUpdate();
+    return points;
+  }
+
+  /// Usuwanie punktu z listy na podstawie indeksu
+  LatLng removePoint(int index) {
+    final point = points.removeAt(index);
+    _notifyUpdate();
+    return point;
+  }
+
+  /// Usuwanie ostatniego punktu z listy
   LatLng removeLastPoint() {
     if (points.length == 1) {
       return points[0];
     }
     final point = points.removeLast();
-    _notifyUpdate(); // Wywołanie callbacka po usunięciu punktu
+    _notifyUpdate();
     return point;
   }
 
-  /// Notyfikacja dla zewnętrznego callbacka, aktualizująca punkty i markery
-  void _notifyUpdate() {
-    final markers = getMarkers(); // Pobieranie listy markerów
-    onPointsUpdated(
-      points,
-      markers,
-    ); // Przekazanie zaktualizowanych punktów i markerów
-  }
-
-  /// Tworzenie markerów do edycji
+  /// Tworzenie markerów do edycji,
+  ///  które pozwalają na interakcję z punktami na mapie
   List<DragMarker> getMarkers() {
     final dragMarkers = <DragMarker>[];
 
-    // Tworzenie markerów dla istniejących punktów
     for (var c = 0; c < points.length; c++) {
       final indexClosure = c;
       dragMarkers.add(
@@ -94,7 +123,12 @@ class PolyEditor {
       );
     }
 
-    // Dodanie markerów pośrednich pomiędzy punktami
+    _addIntermediateMarkers(dragMarkers);
+    return dragMarkers;
+  }
+
+  /// Dodawanie markerów pośrednich między punktami, oraz zamykających ścieżkę
+  void _addIntermediateMarkers(List<DragMarker> dragMarkers) {
     for (var c = 0; c < points.length - 1; c++) {
       final polyPoint = points[c];
       final polyPoint2 = points[c + 1];
@@ -114,7 +148,7 @@ class PolyEditor {
             onDragStart: (details, point) {
               points.insert(c + 1, intermediatePoint);
               _markerToUpdate = c + 1;
-              _notifyUpdate(); // Aktualizacja po dodaniu punktu pośredniego
+              _notifyUpdate();
             },
             onDragUpdate: updateMarker,
           ),
@@ -122,33 +156,85 @@ class PolyEditor {
       }
     }
 
-    // Dodanie zamknięcia ścieżki, jeśli opcja jest włączona
     if (addClosePathMarker && points.length > 2) {
-      if (intermediateIcon != null) {
-        final finalPointIndex = points.length - 1;
-        final intermediatePoint = LatLng(
-          points[finalPointIndex].latitude +
-              (points[0].latitude - points[finalPointIndex].latitude) / 2,
-          points[finalPointIndex].longitude +
-              (points[0].longitude - points[finalPointIndex].longitude) / 2,
-        );
+      _addClosePathMarker(dragMarkers);
+    }
+  }
 
-        dragMarkers.add(
-          DragMarker(
-            point: intermediatePoint,
-            size: intermediateIconSize,
-            builder: (_, __, ___) => intermediateIcon!,
-            onDragStart: (details, point) {
-              points.insert(finalPointIndex + 1, intermediatePoint);
-              _markerToUpdate = finalPointIndex + 1;
-              _notifyUpdate(); // Aktualizacja po dodaniu punktu zamykającego
-            },
-            onDragUpdate: updateMarker,
-          ),
-        );
-      }
+  /// Dodaje marker zamykający ścieżkę w przypadku wielokątów zamkniętych
+  void _addClosePathMarker(List<DragMarker> dragMarkers) {
+    if (intermediateIcon != null) {
+      final finalPointIndex = points.length - 1;
+      final intermediatePoint = LatLng(
+        points[finalPointIndex].latitude +
+            (points[0].latitude - points[finalPointIndex].latitude) / 2,
+        points[finalPointIndex].longitude +
+            (points[0].longitude - points[finalPointIndex].longitude) / 2,
+      );
+
+      dragMarkers.add(
+        DragMarker(
+          point: intermediatePoint,
+          size: intermediateIconSize,
+          builder: (_, __, ___) => intermediateIcon!,
+          onDragStart: (details, point) {
+            points.insert(finalPointIndex + 1, intermediatePoint);
+            _markerToUpdate = finalPointIndex + 1;
+            _notifyUpdate();
+          },
+          onDragUpdate: updateMarker,
+        ),
+      );
+    }
+  }
+
+  /// Generowanie punktów pośrednich wzdłuż linii między dwoma punktami
+  List<LatLng> _generatePointsAlongLine(
+    LatLng start,
+    LatLng end,
+    int numPoints,
+  ) {
+    final pointsOnLine = <LatLng>[];
+    const distance = Distance();
+
+    final totalDistance = distance.as(LengthUnit.Meter, start, end);
+    final segmentDistance = totalDistance / (numPoints + 1);
+
+    for (var i = 1; i <= numPoints; i++) {
+      final intermediatePoint = distance.offset(
+        start,
+        segmentDistance * i,
+        distance.bearing(start, end),
+      );
+      pointsOnLine.add(intermediatePoint);
     }
 
-    return dragMarkers;
+    return pointsOnLine;
+  }
+
+  /// Rozszerza listę punktów na liniach prostych, dodając punkty pośrednie
+  List<List<LatLng>> _expandSnapPoints() {
+    final expandedSnapPoints = <List<LatLng>>[];
+
+    for (final snapList in snapPoints) {
+      final expandedSnapList = <LatLng>[];
+
+      for (var c = 0; c < snapList.length - 1; c++) {
+        final start = snapList[c];
+        final end = snapList[c + 1];
+
+        expandedSnapList.add(start);
+        const numIntermediatePoints = 100;
+        final additionalPoints =
+            _generatePointsAlongLine(start, end, numIntermediatePoints);
+
+        expandedSnapList.addAll(additionalPoints);
+      }
+
+      expandedSnapList.add(snapList.last);
+      expandedSnapPoints.add(expandedSnapList);
+    }
+
+    return expandedSnapPoints;
   }
 }

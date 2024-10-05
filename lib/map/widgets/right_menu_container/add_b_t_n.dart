@@ -19,7 +19,7 @@ class AddBTN extends StatelessWidget {
               ? null
               : () => context
                   .read<MapViewControllerCubit>()
-                  .addNewPolygon(AreaType.mainArea, null),
+                  .addNewPolygon(AreaType.mainArea, null, null),
           icon: const Icon(Icons.add_box_rounded),
         ),
         const Text(
