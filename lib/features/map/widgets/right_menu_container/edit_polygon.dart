@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mission_planer/map/cubit/map_view_controller_cubit.dart';
-import 'package:mission_planer/map/entities/polygon_ext.dart';
+import 'package:mission_planer/core/extensions/l10n.dart';
+import 'package:mission_planer/features/map/cubit/map_view_controller_cubit.dart';
+import 'package:mission_planer/features/map/entities/polygon_ext.dart';
 
 class EditPolygon extends StatelessWidget {
   const EditPolygon({
@@ -17,22 +18,22 @@ class EditPolygon extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Edytowany obszar:'),
+          Text('${context.l10n.editedArea}:'),
           const Divider(),
           TextFormField(
             onChanged: (value) =>
                 context.read<MapViewControllerCubit>().changePolygonName(value),
             initialValue: polygonToEdit.name,
-            decoration: const InputDecoration(
-              labelText: 'Nazwa',
+            decoration: InputDecoration(
+              labelText: context.l10n.name,
             ),
           ),
           TextFormField(
             onChanged: (value) => context
                 .read<MapViewControllerCubit>()
                 .changePolygonDescription(value),
-            decoration: const InputDecoration(
-              labelText: 'Opis',
+            decoration: InputDecoration(
+              labelText: context.l10n.description,
             ),
             minLines: 1,
             maxLines: 5,

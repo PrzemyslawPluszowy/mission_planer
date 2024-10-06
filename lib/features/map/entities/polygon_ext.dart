@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:mission_planer/map/services/map_configuration.dart';
+import 'package:mission_planer/features/map/services/map_configuration.dart';
 import 'package:uuid/uuid.dart';
 
 enum AreaType {
@@ -48,7 +48,7 @@ class PolygonExt extends Polygon {
     return PolygonExt(
       hitValue: '',
       uuid: const Uuid().v4(),
-      name: 'Strefa buforowa',
+      name: '',
       description: '',
       points: points,
       offset: offset,

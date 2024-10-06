@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:latlong2/latlong.dart';
-import 'package:mission_planer/map/entities/polygon_ext.dart';
+import 'package:mission_planer/features/map/entities/polygon_ext.dart';
 
 class MapService {
   List<PolygonExt> areas = [];

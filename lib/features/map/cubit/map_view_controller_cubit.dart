@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_dragmarker/flutter_map_dragmarker.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:mission_planer/map/entities/polygon_ext.dart';
-import 'package:mission_planer/map/services/map_configuration.dart';
-import 'package:mission_planer/map/services/map_service.dart';
-import 'package:mission_planer/map/services/poly_editor.dart';
-import 'package:mission_planer/map/services/polygon_helper.dart';
+import 'package:mission_planer/features/map/entities/polygon_ext.dart';
+import 'package:mission_planer/features/map/services/map_configuration.dart';
+import 'package:mission_planer/features/map/services/map_service.dart';
+import 'package:mission_planer/features/map/services/poly_editor.dart';
+import 'package:mission_planer/features/map/services/polygon_helper.dart';
 import 'package:uuid/uuid.dart';
 
 part 'map_view_controller_state.dart';

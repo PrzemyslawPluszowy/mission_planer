@@ -2,10 +2,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mission_planer/map/cubit/map_view_controller_cubit.dart';
-import 'package:mission_planer/map/entities/mapped_area.dart';
-import 'package:mission_planer/map/entities/polygon_ext.dart';
-import 'package:mission_planer/map/services/map_configuration.dart';
+import 'package:mission_planer/core/extensions/context_text_theme.dart';
+import 'package:mission_planer/core/extensions/l10n.dart';
+import 'package:mission_planer/core/theme/app_sizes.dart';
+import 'package:mission_planer/features/map/cubit/map_view_controller_cubit.dart';
+import 'package:mission_planer/features/map/entities/mapped_area.dart';
+import 'package:mission_planer/features/map/entities/polygon_ext.dart';
+import 'package:mission_planer/features/map/services/map_configuration.dart';
 
 class ListAreas extends StatelessWidget {
   const ListAreas({
@@ -36,7 +39,7 @@ class ListAreas extends StatelessWidget {
             onPressed: () => context
                 .read<MapViewControllerCubit>()
                 .editExistingPolygon(mappedArea.mainPolygon),
-            icon: const Icon(Icons.edit_location_alt, size: 17),
+            icon: const Icon(Icons.edit_location_alt, size: Sizes.p16),
           ),
           IconButton(
             onPressed: () =>
@@ -44,7 +47,7 @@ class ListAreas extends StatelessWidget {
                       mappedArea.mainPolygon.uuid,
                       mappedArea.mainPolygon.type,
                     ),
-            icon: const Icon(Icons.delete, size: 17),
+            icon: const Icon(Icons.delete, size: Sizes.p16),
           ),
           IconButton(
             onPressed: () =>
@@ -52,17 +55,17 @@ class ListAreas extends StatelessWidget {
                       mappedArea.mainPolygon.points.first,
                       MapConfiguration.initialZoom,
                     ),
-            icon: const Icon(Icons.pin_drop, size: 17),
+            icon: const Icon(Icons.pin_drop, size: Sizes.p16),
           ),
         ],
       ),
       title: Text(
         mappedArea.mainPolygon.name,
-        style: const TextStyle(fontSize: 12),
+        style: context.textTheme.bodyMedium,
       ),
       subtitle: Text(
         mappedArea.mainPolygon.description,
-        style: const TextStyle(fontSize: 10),
+        style: context.textTheme.bodySmall,
       ),
       children: [
         ..._buildSubAreaTiles(context, mappedArea),
@@ -73,13 +76,13 @@ class ListAreas extends StatelessWidget {
                 context,
                 mappedArea.mainPolygon.uuid,
                 AreaType.subArea,
-                'Dodaj nowy podobszar',
+                context.l10n.addSubArea,
               ),
               _buildAddNewAreaRow(
                 context,
                 mappedArea.mainPolygon.uuid,
                 AreaType.noFlyZone,
-                'Dodaj nową strefę zakazu',
+                context.l10n.addRestrictedArea,
               ),
             ],
           ),

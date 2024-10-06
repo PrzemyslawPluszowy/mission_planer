@@ -1,9 +1,12 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mission_planer/map/cubit/map_view_controller_cubit.dart';
-import 'package:mission_planer/map/entities/polygon_ext.dart';
-import 'package:mission_planer/map/services/map_configuration.dart';
+import 'package:mission_planer/core/extensions/context_text_theme.dart';
+import 'package:mission_planer/core/extensions/l10n.dart';
+import 'package:mission_planer/core/theme/app_sizes.dart';
+import 'package:mission_planer/features/map/cubit/map_view_controller_cubit.dart';
+import 'package:mission_planer/features/map/entities/polygon_ext.dart';
+import 'package:mission_planer/features/map/services/map_configuration.dart';
 
 class EditBar extends StatelessWidget {
   const EditBar({super.key});
@@ -20,7 +23,7 @@ class EditBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            const SizedBox(width: 8),
+            gapW8,
             BlocBuilder<MapViewControllerCubit, MapViewControllerState>(
               builder: (context, state) {
                 if (state is MapViewControllerRefreshMap) {
@@ -28,8 +31,8 @@ class EditBar extends StatelessWidget {
                     return SizedBox(
                       width: 150,
                       child: TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'Maksymalna strefa lotu',
+                        decoration: InputDecoration(
+                          labelText: context.l10n.maxFlyZone,
                         ),
                         initialValue: _findFancyAreaOffset(context),
                         onChanged: (value) {
@@ -47,12 +50,12 @@ class EditBar extends StatelessWidget {
                 return const SizedBox();
               },
             ),
-            const SizedBox(width: 8),
-            const VerticalDivider(width: 1),
+            gapW8,
+            const VerticalDivider(),
             _buildActionButton(
               context: context,
               icon: Icons.save,
-              label: 'Zapisz zmiany',
+              label: context.l10n.save,
               onPressed: () {
                 final mapState = context.read<MapViewControllerCubit>().state
                     as MapViewControllerRefreshMap;
@@ -73,15 +76,15 @@ class EditBar extends StatelessWidget {
             _buildActionButton(
               context: context,
               icon: Icons.clear,
-              label: 'Anuluj',
+              label: context.l10n.cancel,
               onPressed: () {
                 context.read<MapViewControllerCubit>().cancelEditing();
               },
             ),
             const VerticalDivider(),
             _buildUndoButton(context),
-            const SizedBox(width: 8),
-            const VerticalDivider(width: 1),
+            gapW8,
+            const VerticalDivider(),
           ],
         ),
       ),
@@ -99,7 +102,7 @@ class EditBar extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon),
-          Text(label, style: const TextStyle(fontSize: 10)),
+          Text(label, style: context.textTheme.bodyMedium),
         ],
       ),
     );
@@ -112,18 +115,21 @@ class EditBar extends StatelessWidget {
             context.read<MapViewControllerCubit>().undoCreatedPoints();
         if (!canUndo) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nie można usunąć punktu startowego'),
+            SnackBar(
+              content: Text(context.l10n.cantDeleteStartPoint),
             ),
           );
         }
       },
-      child: const Row(
+      child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.undo,
           ),
-          Text('Cofnij ostatni punkt', style: TextStyle(fontSize: 10)),
+          Text(
+            context.l10n.deleteLastPoint,
+            style: context.textTheme.bodySmall,
+          ),
         ],
       ),
     );

@@ -1,5 +1,5 @@
 import 'package:bloc/bloc.dart';
-import 'package:mission_planer/map/services/map_configuration.dart';
+import 'package:mission_planer/features/map/services/map_configuration.dart';
 
 part 'map_style_state.dart';
 

@@ -1,0 +1,24 @@
+{
+    "@@locale": "pl",
+    "counterAppBarTitle": "Licznik",
+    "@counterAppBarTitle": {
+        "description": "Tekst wyświetlany na pasku aplikacji na stronie licznika"
+    },
+    "area": "Obszar",
+    "outsideArea": "jest poza głównym obszarem",
+    "maxFlyZone": "Maksymalna strefa lotu",
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "cantDeleteStartPoint": "Nie można usunąć punktu początkowego",
+    "deleteLastPoint": "Usuń ostatni punkt",
+    "addNewArea": "Dodaj nowy obszar",
+    "editedArea": "Edytowany obszar",
+    "name": "Nazwa",
+    "description": "Opis",
+    "addSubArea": "Dodaj podobszar",
+    "addRestrictedArea": "Dodaj obszar ograniczony",
+    "fancyZone": "Strefa buforowa",
+    "mapPlaner": "Planer mapy",
+    "settings": "Ustawienia"
+}

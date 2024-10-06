@@ -3,11 +3,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_dragmarker/flutter_map_dragmarker.dart';
-import 'package:mission_planer/map/cubit/map_style_cubit.dart';
-import 'package:mission_planer/map/cubit/map_view_controller_cubit.dart';
-import 'package:mission_planer/map/entities/polygon_ext.dart';
-import 'package:mission_planer/map/services/map_configuration.dart';
-import 'package:mission_planer/map/widgets/edit_bar.dart';
+import 'package:ionicons/ionicons.dart';
+import 'package:mission_planer/core/extensions/context_color.dart';
+import 'package:mission_planer/core/theme/app_sizes.dart';
+import 'package:mission_planer/features/map/cubit/map_style_cubit.dart';
+import 'package:mission_planer/features/map/cubit/map_view_controller_cubit.dart';
+import 'package:mission_planer/features/map/entities/polygon_ext.dart';
+import 'package:mission_planer/features/map/services/map_configuration.dart';
+import 'package:mission_planer/features/map/widgets/edit_bar.dart';
 
 class MapView extends StatefulWidget {
   const MapView({super.key});
@@ -73,7 +76,10 @@ class _MapViewState extends State<MapView> {
                   onPressed: () {
                     context.read<MapStyleCubit>().changeStyle();
                   },
-                  child: const Icon(Icons.satellite_alt_sharp),
+                  child: Icon(
+                    Ionicons.map,
+                    color: context.colorScheme.onInverseSurface,
+                  ),
                 ),
               ),
             ],
@@ -90,7 +96,7 @@ class _MapViewState extends State<MapView> {
       top: 100,
       left: 0,
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(Sizes.p8),
         constraints: const BoxConstraints(
           minWidth: 300,
         ),

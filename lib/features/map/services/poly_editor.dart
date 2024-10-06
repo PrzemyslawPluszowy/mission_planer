@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map_dragmarker/flutter_map_dragmarker.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:mission_planer/map/services/map_configuration.dart';
+import 'package:mission_planer/features/map/services/map_configuration.dart';
 
 class PolyEditor {
   PolyEditor({
