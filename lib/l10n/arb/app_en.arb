@@ -3,5 +3,24 @@
     "counterAppBarTitle": "Counter",
     "@counterAppBarTitle": {
         "description": "Text shown in the AppBar of the Counter Page"
-    }
+    },
+    "area": "Area",
+    "outsideArea": "is outside of main area",
+    "maxFlyZone": "Max Fly Zone",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "cantDeleteStartPoint": "Can't delete start point",
+    "deleteLastPoint": "Delete last point",
+    "addNewArea": "Add new area",
+    "editedArea": "Edited area",
+    "name": "Name",
+    "description": "Description",
+    "addSubArea": "Add sub area",
+    "addRestrictedArea": "Add restricted area",
+    "fancyZone": "Fancy Zone",
+    "mapPlaner": "Map Planer",
+    "settings": "Settings",
+    "err_loading": "Error data",
+    "err_outside_area": "Error: Area  is outside of main area"
 }
