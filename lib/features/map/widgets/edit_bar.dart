@@ -64,7 +64,7 @@ class EditBar extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       backgroundColor: Colors.red,
-                      content: Text(mapState.errorOnEdit!),
+                      content: Text(mapState.errorOnEdit!.l10Message(context)),
                     ),
                   );
                 } else {

@@ -17,5 +17,5 @@ final class MapViewControllerRefreshMap extends MapViewControllerState {
   final bool onEdit;
   final PolygonExt? polygonToEdit;
   final List<DragMarker> markers;
-  final String? errorOnEdit;
+  final ErrorSlider? errorOnEdit;
 }

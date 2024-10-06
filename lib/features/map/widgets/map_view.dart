@@ -10,6 +10,7 @@ import 'package:mission_planer/features/map/cubit/map_style_cubit.dart';
 import 'package:mission_planer/features/map/cubit/map_view_controller_cubit.dart';
 import 'package:mission_planer/features/map/entities/polygon_ext.dart';
 import 'package:mission_planer/features/map/services/map_configuration.dart';
+import 'package:mission_planer/features/map/widgets/all_polygon.dart';
 import 'package:mission_planer/features/map/widgets/edit_bar.dart';
 
 class MapView extends StatefulWidget {
@@ -35,7 +36,7 @@ class _MapViewState extends State<MapView> {
                     context.read<MapViewControllerCubit>().mapController,
                 options: MapOptions(
                   onTap: (_, ll) {
-                    /// Add point to polygon if in edit mode.
+                    ///  dodaje punkt do edycji
                     if (state.onEdit) {
                       context.read<MapViewControllerCubit>().addPoint(ll);
                     }
@@ -51,22 +52,22 @@ class _MapViewState extends State<MapView> {
                       );
                     },
                   ),
-
-                  /// if edit mode is off and there are areas to display
-                  ///
-                  LoadedPolygon(
+                  //załadowane z bakendu polygony
+                  AllPolygon(
                     hitNotifier: hitNotifier,
                     areas: state.areas,
                     useOnEditingMode: state.onEdit,
                   ),
+
+                  //pokazuje edytowalny polygon oraz punkty do edycji
                   if (state.onEdit && state.polygonToEdit != null)
                     EditedPolygon(polygonToEdit: state.polygonToEdit!),
-
                   DragMarkers(
                     markers: state.markers,
                   ),
                 ],
               ),
+              //pokazuje pasek edycji
               if (state.onEdit) const EditBar(),
               if (state.errorOnEdit != null) _errorEditingArea(state),
               Positioned(
@@ -110,7 +111,7 @@ class _MapViewState extends State<MapView> {
         ),
         child: Center(
           child: Text(
-            state.errorOnEdit!,
+            state.errorOnEdit!.l10Message(context),
             style: const TextStyle(color: Colors.white),
           ),
         ),
@@ -141,43 +142,6 @@ class EditedPolygon extends StatelessWidget {
       polygons: [
         polygonToEdit,
       ],
-    );
-  }
-}
-
-class LoadedPolygon extends StatelessWidget {
-  const LoadedPolygon({
-    required this.hitNotifier,
-    required this.areas,
-    required this.useOnEditingMode,
-    super.key,
-  });
-
-  final LayerHitNotifier<Object> hitNotifier;
-  final List<PolygonExt> areas;
-  final bool useOnEditingMode;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      hitTestBehavior: HitTestBehavior.deferToChild,
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: useOnEditingMode
-            ? null
-            : () {
-                final hitResult = hitNotifier.value;
-                if (hitResult != null) {
-                  context
-                      .read<MapViewControllerCubit>()
-                      .onPolygonTap(hitResult);
-                }
-              },
-        child: PolygonLayer(
-          hitNotifier: hitNotifier,
-          polygons: areas,
-        ),
-      ),
     );
   }
 }

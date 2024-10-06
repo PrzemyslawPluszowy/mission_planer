@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_dragmarker/flutter_map_dragmarker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:mission_planer/core/extensions/l10n.dart';
 import 'package:mission_planer/features/map/entities/polygon_ext.dart';
 import 'package:mission_planer/features/map/services/map_configuration.dart';
 import 'package:mission_planer/features/map/services/map_service.dart';
@@ -12,6 +13,20 @@ import 'package:mission_planer/features/map/services/polygon_helper.dart';
 import 'package:uuid/uuid.dart';
 
 part 'map_view_controller_state.dart';
+
+enum ErrorSlider {
+  errorLoading,
+  outsideArea;
+
+  String l10Message(BuildContext context) {
+    switch (this) {
+      case ErrorSlider.errorLoading:
+        return context.l10n.err_loading;
+      case ErrorSlider.outsideArea:
+        return context.l10n.err_outside_area;
+    }
+  }
+}
 
 class MapViewControllerCubit extends Cubit<MapViewControllerState> {
   MapViewControllerCubit() : super(MapViewControllerInitial()) {
@@ -203,6 +218,23 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
             mainAreaPoint ?? [],
           );
         }
+        if (polygonToEdit.type == AreaType.mainArea) {
+          final nestedAreas = currentAreas.where(
+            (element) =>
+                element.assignedMainArea == polygonToEdit.uuid &&
+                element.type != AreaType.fancyArea,
+          );
+
+          for (final area in nestedAreas) {
+            if (!PolygonHelper.isPolygonInsidePolygon(
+              area.points,
+              updatedPoints,
+            )) {
+              hasErr = true;
+              break;
+            }
+          }
+        }
         _onPointsUpdated(
           hasErr,
           updatedPoints,
@@ -229,9 +261,7 @@ class MapViewControllerCubit extends Cubit<MapViewControllerState> {
         areas: currentAreas,
         polygonToEdit: polygonToEdit.copyWith(points: updatedPoints),
         onEdit: true,
-        errorOnEdit: hasErr
-            ? 'Polygon ${polygonToEdit.name} is outside of main area'
-            : null,
+        errorOnEdit: hasErr ? ErrorSlider.outsideArea : null,
       ),
     );
   }
